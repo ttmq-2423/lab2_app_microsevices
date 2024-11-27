@@ -2,8 +2,7 @@ FROM openjdk:8-alpine
 
 EXPOSE 8083
 WORKDIR /usr/src/app
-RUN chmod -R 755 /var/lib/jenkins/workspace/app_microservices
-RUN chmod -R +x /var/lib/jenkins/workspace/app_microservices
+
 
 COPY pom.xml mvnw ./
 COPY .mvn/ ./.mvn
