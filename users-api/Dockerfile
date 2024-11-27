@@ -3,6 +3,7 @@ FROM openjdk:8-alpine
 EXPOSE 8083
 WORKDIR /usr/src/app
 
+RUN ls 
 RUN chmod -R 755 mvnw
 COPY pom.xml mvnw ./
 COPY .mvn/ ./.mvn
