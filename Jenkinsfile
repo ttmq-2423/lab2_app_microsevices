@@ -2,9 +2,6 @@ pipeline {
     agent any
 
     environment {
-        REGISTRY = "docker.io"
-        DOCKER_USER = credentials('dockerhub-username')
-        DOCKER_PASS = credentials('dockerhub-password')
         IMAGE_TAG = "${BUILD_NUMBER}"
     }
 
@@ -18,13 +15,19 @@ pipeline {
 
         stage('Docker Login') {
             steps {
-                sh '''
-                echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                '''
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-cred',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh '''
+                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                    '''
+                }
             }
         }
 
-        stage('Build frontend') {
+        stage('Build & Push frontend') {
             steps {
                 sh '''
                 docker build -t $DOCKER_USER/frontend:$IMAGE_TAG ./frontend
@@ -33,7 +36,7 @@ pipeline {
             }
         }
 
-        stage('Build auth-api') {
+        stage('Build & Push auth-api') {
             steps {
                 sh '''
                 docker build -t $DOCKER_USER/auth-api:$IMAGE_TAG ./auth-api
@@ -42,7 +45,7 @@ pipeline {
             }
         }
 
-        stage('Build todos-api') {
+        stage('Build & Push todos-api') {
             steps {
                 sh '''
                 docker build -t $DOCKER_USER/todos-api:$IMAGE_TAG ./todos-api
@@ -51,7 +54,7 @@ pipeline {
             }
         }
 
-        stage('Build users-api') {
+        stage('Build & Push users-api') {
             steps {
                 sh '''
                 docker build -t $DOCKER_USER/users-api:$IMAGE_TAG ./users-api
@@ -60,7 +63,7 @@ pipeline {
             }
         }
 
-        stage('Build log-message-processor') {
+        stage('Build & Push log-message-processor') {
             steps {
                 sh '''
                 docker build -t $DOCKER_USER/log-message-processor:$IMAGE_TAG ./log-message-processor
@@ -72,7 +75,7 @@ pipeline {
 
     post {
         success {
-            echo "🎉 Build & push all services successfully!"
+            echo "✅ All services built & pushed successfully!"
         }
         failure {
             echo "❌ Pipeline failed"
