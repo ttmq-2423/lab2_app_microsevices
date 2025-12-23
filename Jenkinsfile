@@ -2,61 +2,69 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_USER = 'your_dockerhub_username'
-        DOCKERHUB_REPO = 'microservices'
+        REGISTRY = "docker.io"
+        DOCKER_USER = credentials('dockerhub-username')
+        DOCKER_PASS = credentials('dockerhub-password')
+        IMAGE_TAG = "${BUILD_NUMBER}"
     }
 
     stages {
 
-        stage('Checkout Code') {
+        stage('Checkout') {
             steps {
-                git branch: 'main',
-                    url: 'https://github.com/your-org/your-repo.git'
+                checkout scm
             }
         }
 
         stage('Docker Login') {
             steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-cred',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
-                    sh '''
-                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                    '''
-                }
-            }
-        }
-
-        stage('Build Images') {
-            steps {
                 sh '''
-                docker compose build
+                echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
                 '''
             }
         }
 
-        stage('Tag Images') {
+        stage('Build frontend') {
             steps {
                 sh '''
-                docker tag frontend        $DOCKER_USER/frontend:latest
-                docker tag auth-api        $DOCKER_USER/auth-api:latest
-                docker tag todos-api       $DOCKER_USER/todos-api:latest
-                docker tag users-api       $DOCKER_USER/users-api:latest
-                docker tag log-message-processor $DOCKER_USER/log-message-processor:latest
+                docker build -t $DOCKER_USER/frontend:$IMAGE_TAG ./frontend
+                docker push $DOCKER_USER/frontend:$IMAGE_TAG
                 '''
             }
         }
 
-        stage('Push Images') {
+        stage('Build auth-api') {
             steps {
                 sh '''
-                docker push $DOCKER_USER/frontend:latest
-                docker push $DOCKER_USER/auth-api:latest
-                docker push $DOCKER_USER/todos-api:latest
-                docker push $DOCKER_USER/users-api:latest
-                docker push $DOCKER_USER/log-message-processor:latest
+                docker build -t $DOCKER_USER/auth-api:$IMAGE_TAG ./auth-api
+                docker push $DOCKER_USER/auth-api:$IMAGE_TAG
+                '''
+            }
+        }
+
+        stage('Build todos-api') {
+            steps {
+                sh '''
+                docker build -t $DOCKER_USER/todos-api:$IMAGE_TAG ./todos-api
+                docker push $DOCKER_USER/todos-api:$IMAGE_TAG
+                '''
+            }
+        }
+
+        stage('Build users-api') {
+            steps {
+                sh '''
+                docker build -t $DOCKER_USER/users-api:$IMAGE_TAG ./users-api
+                docker push $DOCKER_USER/users-api:$IMAGE_TAG
+                '''
+            }
+        }
+
+        stage('Build log-message-processor') {
+            steps {
+                sh '''
+                docker build -t $DOCKER_USER/log-message-processor:$IMAGE_TAG ./log-message-processor
+                docker push $DOCKER_USER/log-message-processor:$IMAGE_TAG
                 '''
             }
         }
@@ -64,10 +72,10 @@ pipeline {
 
     post {
         success {
-            echo '✅ CI Pipeline finished successfully'
+            echo "🎉 Build & push all services successfully!"
         }
         failure {
-            echo '❌ CI Pipeline failed'
+            echo "❌ Pipeline failed"
         }
     }
 }
